@@ -9,15 +9,16 @@
 
 uint8_t color_weight = 24;
 unsigned int color = 0x000000;
-const uint32_t freq_hz = 50000;
+uint32_t color_duties[25];
+const uint32_t freq_hz = 60000;
 const uint8_t duty_resolution = 8;
 const double duty_unit = (1e9/(freq_hz * 256));
 const uint32_t LOW_DCYCLE = (uint32_t)(320/duty_unit);
 const uint32_t HIGH_DCYCLE = (uint32_t)(800/duty_unit);
 
 static bool change_color(gptimer_handle_t, const gptimer_alarm_event_data_t*, void*);
-void init_color_timer();
-void set_color(uint32_t);
+void init_led();
+void set_color(unsigned int);
 
 const ledc_timer_config_t led_timer_config = {
     .speed_mode = LEDC_LOW_SPEED_MODE,
@@ -55,61 +56,47 @@ const gptimer_event_callbacks_t color_cbs = {
     .on_alarm = change_color,
 };
 
-void init_color_timer(){
+void init_led(){
+    ESP_ERROR_CHECK(ledc_timer_config(&led_timer_config));
+    ESP_ERROR_CHECK(ledc_channel_config(&led_channel_config));
     ESP_ERROR_CHECK(gptimer_new_timer(&color_timer_config, &color_timer_handler));
     ESP_ERROR_CHECK(gptimer_set_alarm_action(color_timer_handler, &color_alarm_config));
     ESP_ERROR_CHECK(gptimer_register_event_callbacks(color_timer_handler, &color_cbs, NULL));
     ESP_ERROR_CHECK(gptimer_enable(color_timer_handler));
+    color_duties[0] = 0;
 }
 
 static bool change_color(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx){
-    //printf("Callback\n");
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, color_duties[color_weight]);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
     if(color_weight == 0){
         color_weight = 24;
         ledc_timer_pause(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0);
         gptimer_stop(timer);
         return true;
     }
-    bool bit_val = (bool)((color >> (color_weight-1)) & 1);
-    uint32_t color_bit = bit_val ? HIGH_DCYCLE : LOW_DCYCLE;
-    //printf("%d", color_bit);
-    //ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, color_bit, 0);
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, color_bit);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
-    if(color_weight == 24) ledc_timer_resume(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0);
     color_weight--;
+    if(color_weight == 23) ledc_timer_resume(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0);
     return true;
 }
 
 //0x000000 to 0xffffff (GRB)
-void set_color(uint32_t new_color){
-    color = new_color;
-    //ledc_timer_pause(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0);
-    //ets_delay_us(100);
-    //printf("Antes do gptimer_start\n");
+void set_color(unsigned int color){
+    int i;
+    for(i = 0; i <= 23; i++){
+        color_duties[i+1] = (bool)((color >> i) & 1) ? HIGH_DCYCLE : LOW_DCYCLE;
+    }
     ESP_ERROR_CHECK(gptimer_start(color_timer_handler));
-    //printf("Depois do gptimer_start\n");
-    //ledc_timer_resume(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0);
-    //printf("Depois do timer_resume\n");
-    //ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 11);
-    //ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
-    //ets_delay_us(160);
-    //ledc_timer_pause(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0);
-
 }
 
 void app_main() {
-    ESP_ERROR_CHECK(ledc_timer_config(&led_timer_config));
-    ESP_ERROR_CHECK(ledc_channel_config(&led_channel_config));
-
-    init_color_timer();
-    set_color(0x000000);
+    init_led();
     color = 1;
-
+    set_color(color);
     while(true){
         vTaskDelay(10);
         color = color << 1;
-        if(color > 0xF00000) color = 1;
+        if(color > 0xFFFFFF) color = 1;
         set_color(color);
         printf("%x\n", color);
     };

@@ -1,0 +1,10 @@
+{
+    "idf.portWin": "COM4",
+    "idf.adapterTargetName": "esp32s3",
+    "idf.openOcdConfigs": [
+        "board/esp32s3-builtin.cfg"
+    ],
+    "files.associations": {
+        "gpio.h": "c"
+    }
+}

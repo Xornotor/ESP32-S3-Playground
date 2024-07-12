@@ -5,6 +5,8 @@
         "board/esp32s3-builtin.cfg"
     ],
     "files.associations": {
-        "gpio.h": "c"
+        "gpio.h": "c",
+        "random": "c",
+        "spi_master.h": "c"
     }
 }

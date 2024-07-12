@@ -176,3 +176,20 @@ void st7789_print(uint16_t *f_buffer,
         string += sizeof(char);
     }
 }
+
+void st7789_draw_box(uint16_t *f_buffer,
+              uint16_t x_start,
+              uint16_t y_start,
+              uint16_t x_end,
+              uint16_t y_end,
+              uint16_t color
+              ){
+    
+    uint16_t i, j;
+
+    for(i = y_start; i < y_end; i++){
+        for(j = x_start; j < x_end; j++){
+            f_buffer[j + (240*i)] = color;
+        }
+    }
+}

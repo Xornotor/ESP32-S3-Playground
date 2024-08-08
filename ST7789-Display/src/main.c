@@ -8,6 +8,7 @@
 uint16_t frame_buffer[240*240];
 
 void app_main() {
+    uint16_t color = 0x0000;
     ESP_ERROR_CHECK(st7789_init());
     
     //st7789_color_lines(frame_buffer);  
@@ -24,8 +25,14 @@ void app_main() {
     st7789_print(frame_buffer, "BUTAO", 77, 178, 0xFFFF, 3);
 
     while(true){
+        color += 0x0F;
+        st7789_draw_box(frame_buffer, 50, 170, 190, 210, color);
+        st7789_draw_box(frame_buffer, 55, 175, 185, 205, color+0x1111);
+
+        st7789_print(frame_buffer, "BUTAO", 77, 178, 0xFFFF, 3);
+        vTaskDelay(pdMS_TO_TICKS(16));
         st7789_update_frame(frame_buffer);
-        vTaskDelay(pdMS_TO_TICKS(33));
+        vTaskDelay(pdMS_TO_TICKS(17));
     }
 
 }

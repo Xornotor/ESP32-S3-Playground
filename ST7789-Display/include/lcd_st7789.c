@@ -1,3 +1,8 @@
+/*
+ * ATTENTION: This library is optimized to a 240x240 ST7789 Display.
+ * For other resolutions it may need some tweaks.
+ */
+
 #include <driver/spi_master.h>
 #include <driver/gpio.h>
 #include <esp_lcd_types.h>
@@ -17,6 +22,9 @@
 #define     MISO_PIN    13
 #define     RST_PIN     15
 #define     DC_PIN      16 
+#define     SWAP_AXIS   true
+#define     MIRROR_X    false
+#define     MIRROR_Y    true
 
 static const spi_bus_config_t buscfg = {
         .sclk_io_num = SCLK_PIN,
@@ -48,7 +56,12 @@ static const esp_lcd_panel_dev_config_t panel_config = {
 };
 
 esp_err_t st7789_update_frame(uint16_t *f_buffer){
-    ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, 240, 240, (const void*) f_buffer));
+    uint16_t x_start = 0, y_start = 0;
+    if(MIRROR_Y){
+        if(SWAP_AXIS) x_start = 80;
+        else y_start = 80;
+    }
+    ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(panel_handle, x_start, y_start, x_start+240, y_start+240, (const void*) f_buffer));
     return ESP_OK;
 }
 
@@ -58,6 +71,8 @@ esp_err_t st7789_init() {
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_config, &panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
+    ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel_handle, MIRROR_X, MIRROR_Y));
+    ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle, SWAP_AXIS));
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
     return ESP_OK;
 }
